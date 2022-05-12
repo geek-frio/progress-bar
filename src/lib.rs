@@ -1,5 +1,3 @@
-use std::collections::binary_heap::Iter;
-
 pub enum IterType {
     Bounded(usize),
     Unbounded,
@@ -25,6 +23,16 @@ where
     iter: T,
     comp_size: usize,
     iter_type: Option<IterType>,
+}
+
+impl<T: Iterator> Progress<T> {
+    fn compute(iter_num: usize, total: usize) -> (usize, usize) {
+        if total > 50 {
+            (iter_num / (total / 50), 50)
+        } else {
+            (iter_num, total)
+        }
+    }
 }
 
 impl<T> Bounded<T> for Progress<T>
@@ -64,14 +72,16 @@ where
             if let Some(iter_type) = self.iter_type.as_ref() {
                 match iter_type {
                     IterType::Unbounded => {
-                        println!("iter num:{}", self.comp_size);
+                        println!("Iter num:{}", self.comp_size);
                     }
                     IterType::Bounded(size) => {
+                        let (progress, bar_size) = Self::compute(self.comp_size, *size);
+                        println!("progess is:{}, bar_size is:{}", progress, bar_size);
                         println!(
-                            "iter num:{}; total_iter:{}\n; progress:[{:size$}]",
+                            "Iter num:{}; total_iter:{};\n progress:[{:bar_size$}]",
                             self.comp_size,
-                            size,
-                            "▮".repeat(self.comp_size)
+                            *size,
+                            "▮".repeat(progress),
                         );
                     }
                 }
@@ -87,22 +97,17 @@ mod tests {
     use std::time::Duration;
 
     fn expensive_process<T>(_el: T) {
-        std::thread::sleep(Duration::from_secs(1));
+        std::thread::sleep(Duration::from_millis(200));
     }
 
     #[test]
     fn test() {
-        let v = vec![1, 2, 3];
+        let mut v = vec![];
+        for i in 0..50 {
+            v.push(i);
+        }
         for i in v.iter().with_progress().bounded() {
             expensive_process(i);
         }
     }
-
-    // #[test]
-    // fn test_format() {
-    //     // println!("Hello {:5}", "x");
-    //     println!("Hello {:1$}", "x", 5);
-    //     let width = 5;
-    //     println!("Hello {0:width$}!", "x");
-    // }
 }
